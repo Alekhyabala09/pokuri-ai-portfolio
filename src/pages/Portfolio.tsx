@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/use-toast';
 import { 
   Download, 
   Mail, 
@@ -34,7 +35,9 @@ const Portfolio = () => {
     message: ''
   });
   
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSection, setActiveSection] = useState('hero');
+  const { toast } = useToast();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -58,10 +61,43 @@ const Portfolio = () => {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
   };
   
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Handle form submission here
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          access_key: '62db946f-e3ae-4816-b647-9eb4ad5c4e69',
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+          subject: `New Portfolio Contact from ${formData.name}`,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Message sent successfully!",
+          description: "Thank you for reaching out. I'll get back to you soon.",
+        });
+        setFormData({ name: '', email: '', message: '' });
+      } else {
+        throw new Error('Failed to send message');
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to send message",
+        description: "Please try again or contact me directly via email.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const skills = {
@@ -624,8 +660,13 @@ const Portfolio = () => {
                       onChange={(e) => setFormData({...formData, message: e.target.value})}
                       required
                     />
-                    <Button type="submit" variant="hero" className="w-full">
-                      Send Message
+                    <Button 
+                      type="submit" 
+                      variant="hero" 
+                      className="w-full" 
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Sending...' : 'Send Message'}
                     </Button>
                   </form>
                 </CardContent>
